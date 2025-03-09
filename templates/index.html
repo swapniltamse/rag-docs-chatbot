@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Docs Chatbot</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chat-container {
+            height: calc(100vh - 240px);
+            overflow-y: auto;
+        }
+        .user-message {
+            background-color: #e2f1fd;
+            border-radius: 18px 18px 0 18px;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            border-radius: 18px 18px 18px 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto max-w-4xl p-4">
+        <header class="bg-blue-600 text-white rounded-lg p-4 mb-4 shadow-md">
+            <h1 class="text-2xl font-bold">RAG Docs Chatbot</h1>
+            <p class="text-sm">Ask questions about your documents</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-4 mb-4">
+            <div class="chat-container mb-4" id="chat-container">
+                <div class="bot-message p-3 mb-2 inline-block max-w-3xl">
+                    Hello! I'm your document assistant. Ask me anything about your documents.
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <input type="text" id="query-input" 
+                    class="flex-grow border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    placeholder="Ask a question..." 
+                    onkeydown="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Send
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <h2 class="text-lg font-semibold mb-2">Admin Controls</h2>
+            <button onclick="reloadDocuments()" 
+                class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                Reload Documents
+            </button>
+            <span id="reload-status" class="ml-2 text-sm"></span>
+        </div>
+    </div>
+
+    <script>
+        function appendMessage(text, isUser) {
+            const container = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = isUser 
+                ? 'user-message p-3 mb-2 ml-auto inline-block max-w-3xl' 
+                : 'bot-message p-3 mb-2 inline-block max-w-3xl';
+            
+            messageDiv.innerText = text;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('query-input');
+            const query = input.value.trim();
+            
+            if (!query) return;
+            
+            // Display user message
+            appendMessage(query, true);
+            input.value = '';
+            
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'bot-message p-3 mb-2 inline-block max-w-3xl';
+            loadingDiv.innerText = 'Thinking...';
+            document.getElementById('chat-container').appendChild(loadingDiv);
+            
+            try {
+                // Send request to backend
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query }),
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading indicator
+                loadingDiv.remove();
+                
+                // Display bot response
+                appendMessage(data.response, false);
+            } catch (error) {
+                // Remove loading indicator
+                loadingDiv.remove();
+                
+                // Display error message
+                appendMessage('Sorry, there was an error processing your request.', false);
+                console.error('Error:', error);
+            }
+        }
+
+        async function reloadDocuments() {
+            const statusSpan = document.getElementById('reload-status');
+            statusSpan.innerText = 'Reloading documents...';
+            statusSpan.className = 'ml-2 text-sm text-yellow-600';
+            
+            try {
+                const response = await fetch('/api/reload', {
+                    method: 'POST',
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusSpan.innerText = 'Documents reloaded successfully!';
+                    statusSpan.className = 'ml-2 text-sm text-green-600';
+                } else {
+                    statusSpan.innerText = `Error: ${data.error}`;
+                    statusSpan.className = 'ml-2 text-sm text-red-600';
+                }
+            } catch (error) {
+                statusSpan.innerText = 'Error reloading documents';
+                statusSpan.className = 'ml-2 text-sm text-red-600';
+                console.error('Error:', error);
+            }
+            
+            // Clear status after 5 seconds
+            setTimeout(() => {
+                statusSpan.innerText = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
