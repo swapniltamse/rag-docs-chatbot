@@ -11,6 +11,7 @@ Initial interface:
 - Semantic search with embeddings
 - Context-aware responses using LLM
 - Simple web UI for interacting with the chatbot
+![alt text](image-2.png)
 
 ## Setup and Installation
 
