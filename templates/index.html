@@ -17,10 +17,15 @@
       .user-message {
         background-color: #e2f1fd;
         border-radius: 18px 18px 0 18px;
+        display: block;
+        width: fit-content;
+        margin-left: auto;
       }
       .bot-message {
         background-color: #f0f0f0;
         border-radius: 18px 18px 18px 0;
+        display: block;
+        width: fit-content;
       }
       .source-citation {
         font-size: 0.7rem;
@@ -63,7 +68,7 @@
 
       <div class="bg-white rounded-lg shadow-md p-4 mb-4">
         <div class="chat-container mb-4" id="chat-container">
-          <div class="bot-message p-3 mb-2 inline-block max-w-3xl">
+          <div class="bot-message p-3 mb-2">
             <div>
               Hello! I'm your friendly document assistant. Ask me anything about
               your documents, and I'll try to help you find the information you
@@ -81,7 +86,6 @@
             onkeydown="if(event.key === 'Enter') sendMessage()"
           />
           <button
-            onclick="sendMessage()"
             id="send-button"
             class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -106,13 +110,25 @@
     </div>
 
     <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Focus input field on page load
+        document.getElementById("query-input").focus();
+
+        // Add click event listener to the send button
+        document
+          .getElementById("send-button")
+          .addEventListener("click", function () {
+            sendMessage();
+          });
+      });
+
       function appendMessage(text, isUser, sources = null) {
         const container = document.getElementById("chat-container");
         const messageDiv = document.createElement("div");
 
         messageDiv.className = isUser
-          ? "user-message p-3 mb-2 ml-auto inline-block max-w-3xl"
-          : "bot-message p-3 mb-2 inline-block max-w-3xl";
+          ? "user-message p-3 mb-2"
+          : "bot-message p-3 mb-2";
 
         // Main message content
         const contentDiv = document.createElement("div");
@@ -135,7 +151,7 @@
       function createTypingIndicator() {
         const container = document.getElementById("chat-container");
         const indicatorDiv = document.createElement("div");
-        indicatorDiv.className = "bot-message p-3 mb-2 inline-block";
+        indicatorDiv.className = "bot-message p-3 mb-2";
         indicatorDiv.id = "typing-indicator";
 
         const typingDiv = document.createElement("div");
@@ -160,7 +176,7 @@
         }
       }
 
-      async function sendMessage() {
+      function sendMessage() {
         const input = document.getElementById("query-input");
         const sendButton = document.getElementById("send-button");
         const query = input.value.trim();
@@ -180,28 +196,51 @@
 
         try {
           // Send request to backend
-          const response = await fetch("/api/chat", {
+          fetch("/api/chat", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({ query }),
-          });
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              // Remove typing indicator after a small delay
+              setTimeout(() => {
+                removeTypingIndicator();
 
-          const data = await response.json();
+                // Display bot response with sources if available
+                appendMessage(data.response, false, data.sources);
 
-          // Remove typing indicator after a small delay to make the interaction feel more natural
-          setTimeout(() => {
-            removeTypingIndicator();
+                // Re-enable input and button
+                input.disabled = false;
+                sendButton.disabled = false;
+                input.focus();
+              }, 500);
+            })
+            .catch((error) => {
+              // Remove typing indicator
+              removeTypingIndicator();
 
-            // Display bot response with sources if available
-            appendMessage(data.response, false, data.sources);
+              // Display error message
+              appendMessage(
+                "I'm sorry, I encountered an error while processing your request. Could you try asking again, or perhaps rephrase your question?",
+                false
+              );
 
-            // Re-enable input and button
-            input.disabled = false;
-            sendButton.disabled = false;
-            input.focus();
-          }, 500);
+              // Log the error to console
+              console.error("Error:", error);
+
+              // Re-enable input and button
+              input.disabled = false;
+              sendButton.disabled = false;
+              input.focus();
+            });
         } catch (error) {
           // Remove typing indicator
           removeTypingIndicator();
@@ -212,19 +251,15 @@
             false
           );
 
+          // Log the error to console
+          console.error("Error:", error);
+
           // Re-enable input and button
           input.disabled = false;
           sendButton.disabled = false;
           input.focus();
-
-          console.error("Error:", error);
         }
       }
-
-      // Focus input field on page load
-      document.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("query-input").focus();
-      });
     </script>
   </body>
 </html>
