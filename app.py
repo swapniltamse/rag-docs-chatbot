@@ -25,13 +25,18 @@ def chat():
         return jsonify({"error": "Query is required"}), 400
     
     # Get response using RAG approach
-    response = rag_engine.generate_response(query)
+    response_data = rag_engine.generate_response(query)
+    
+    # Check if response is a dictionary (new format) or string (old format)
+    if isinstance(response_data, dict):
+        response_text = response_data.get("answer", "")
+    else:
+        response_text = response_data
     
     return jsonify({
         "query": query,
-        "response": response,
+        "response": response_text
     })
-
 @app.route('/api/reload', methods=['POST'])
 def reload_docs():
     """Endpoint to reload and reindex documents"""
