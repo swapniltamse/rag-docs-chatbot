@@ -1,6 +1,8 @@
 # RAG Docs Chatbot
 
 A chatbot that uses Retrieval-Augmented Generation (RAG) to answer questions about your static documents.
+Initial interface:
+![alt text](image.png)
 
 ## Features
 
