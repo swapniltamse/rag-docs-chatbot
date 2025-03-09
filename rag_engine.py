@@ -12,7 +12,118 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 import pypdf
 
 
+# class RAGEngine:
+
 class RAGEngine:
+    def __init__(self, docs_dir: str, db_dir: str):
+        """Initialize the RAG engine
+        
+        Args:
+            docs_dir: Directory containing documents to index
+            db_dir: Directory to store the vector database
+        """
+        self.docs_dir = docs_dir
+        self.db_dir = db_dir
+        self.embeddings = OpenAIEmbeddings()
+        self.llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.4)
+        
+        # Create directory for docs if it doesn't exist
+        os.makedirs(docs_dir, exist_ok=True)
+        
+        # Initialize conversation history
+        self.conversation_history = []
+        self.max_history_length = 5  # Keep last 5 exchanges
+        
+    def add_to_history(self, user_message: str, assistant_response: str):
+        """Add a message exchange to conversation history"""
+        self.conversation_history.append({
+            "user": user_message,
+            "assistant": assistant_response
+        })
+        
+        # Keep history to a manageable size
+        if len(self.conversation_history) > self.max_history_length:
+            self.conversation_history = self.conversation_history[-self.max_history_length:]
+    
+    def format_history(self) -> str:
+        """Format conversation history for inclusion in prompts"""
+        if not self.conversation_history:
+            return ""
+            
+        history_text = "Previous conversation:\n"
+        for exchange in self.conversation_history:
+            history_text += f"User: {exchange['user']}\n"
+            history_text += f"Assistant: {exchange['assistant']}\n"
+        
+        return history_text
+        
+    def generate_response_with_history(self, query: str) -> dict:
+        """Generate a response using RAG with conversation history"""
+        # Load the vector store
+        vectordb = Chroma(
+            persist_directory=self.db_dir,
+            embedding_function=self.embeddings
+        )
+        
+        # Create a retriever
+        retriever = vectordb.as_retriever(
+            search_kwargs={"k": 5}  # Retrieve top 5 most relevant chunks
+        )
+        
+        # Retrieve documents
+        retrieved_docs = retriever.get_relevant_documents(query)
+        
+        # Track sources for citation
+        source_documents = [doc.metadata.get('source', 'unknown') for doc in retrieved_docs]
+        
+        # Get formatted conversation history
+        history = self.format_history()
+        
+        # Create a prompt template that includes conversation history
+        prompt = ChatPromptTemplate.from_template("""
+        You are a helpful, friendly assistant that helps users find information in their documents.
+        
+        {history}
+        
+        When answering the current question, follow these guidelines:
+        1. Be conversational and warm in your tone
+        2. If the answer is in the context, provide it clearly
+        3. If the answer isn't fully in the context, acknowledge what is known and what isn't
+        4. Always maintain an encouraging and helpful tone
+        5. Use the conversation history for context but focus on answering the current question
+        6. If you reference information from the documents, be accurate and don't fabricate details
+        
+        Context from documents:
+        {context}
+        
+        Current Question: {input}
+        
+        Your helpful response:
+        """)
+        
+        # Create a document chain
+        document_chain = create_stuff_documents_chain(
+            self.llm, 
+            prompt,
+            document_variable_name="context"
+        )
+        
+        # Create a retrieval chain
+        retrieval_chain = create_retrieval_chain(retriever, document_chain)
+        
+        # Generate response
+        response = retrieval_chain.invoke({
+            "input": query, 
+            "history": history
+        })
+        
+        # Add this exchange to history
+        self.add_to_history(query, response["answer"])
+        
+        return {
+            "answer": response["answer"],
+            "sources": list(set(source_documents))  # Remove duplicates
+        }
     def __init__(self, docs_dir: str, db_dir: str):
         """Initialize the RAG engine
 
