@@ -6,6 +6,14 @@ Initial interface:
 ![alt text](image-1.png)
 Some successful, some not so successful results:
 ![alt text](image-3.png)
+
+The system is retrieving and correctly responding about the content of the research paper, but it's not picking up on the author information which you know is clearly stated in the document.
+
+This likely indicates a partial success with a few possible issues:
+
+Chunking limitations: The document might be chunked in a way that the authors' section is in a separate chunk from the main content, and that specific chunk wasn't retrieved for this query.
+Text extraction issues: If the authors are listed in a header, footer, or special formatting in the PDF, the PyPDF2 library might not be extracting that text properly.
+Retrieval relevance: The system might not consider author information relevant enough to the query "who are the authors?" compared to content chunks.
 ## Features
 
 - Document ingestion and processing (PDF, TXT, MD)
