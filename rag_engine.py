@@ -1,7 +1,8 @@
 import os
 import glob
 from typing import List, Dict, Any
-import PyPDF2
+# import PyPDF2
+from pypdf import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
