@@ -37,6 +37,7 @@ def chat():
         "query": query,
         "response": response_text
     })
+
 @app.route('/api/reload', methods=['POST'])
 def reload_docs():
     """Endpoint to reload and reindex documents"""
