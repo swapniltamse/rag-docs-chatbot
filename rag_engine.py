@@ -177,3 +177,90 @@ class RAGEngine:
             "answer": response["answer"],
             "sources": list(set(source_documents))
         }
+      
+    def generate_response_with_fallback(self, query: str) -> dict:
+    """Generate a response with fallback for when no relevant documents are found"""
+    # Load the vector store
+    vectordb = Chroma(
+        persist_directory=self.db_dir,
+        embedding_function=self.embeddings
+    )
+    
+    # Create a retriever
+    retriever = vectordb.as_retriever(
+        search_kwargs={"k": 5, "score_threshold": 0.7}  # Add score threshold to filter low relevance
+    )
+    
+    # Retrieve documents
+    retrieved_docs = retriever.get_relevant_documents(query)
+    
+    # Track sources for citation
+    source_documents = [doc.metadata.get('source', 'unknown') for doc in retrieved_docs]
+    
+    # If no relevant documents were found or they're below threshold
+    if not retrieved_docs:
+        # Create a general fallback prompt
+        fallback_prompt = ChatPromptTemplate.from_template("""
+        You are a helpful assistant. The user has asked: "{input}"
+        
+        You don't have specific information about this in your knowledge base. 
+        
+        Please:
+        1. Acknowledge that you don't have specific information about this topic in your documents
+        2. Offer a thoughtful, empathetic response that's still helpful
+        3. Suggest related topics the user might want to ask about instead
+        4. Ask a follow-up question to better understand what they're looking for
+        
+        Your response:
+        """)
+        
+        # Set a slightly higher temperature for more creative fallback responses
+        self.llm.temperature = 0.5
+        
+        # Generate fallback response
+        fallback_chain = fallback_prompt | self.llm
+        response = fallback_chain.invoke({"input": query})
+        
+        return {
+            "answer": response.content,
+            "sources": [],
+            "fallback": True
+        }
+    
+    # If we have relevant documents, proceed with normal RAG
+    # Use a moderate temperature for factual but conversational responses
+    self.llm.temperature = 0.3
+    
+    # Create a prompt template
+    prompt = ChatPromptTemplate.from_template("""
+    You are a helpful, friendly assistant that helps users find information in their documents.
+    
+    When answering questions, follow these guidelines:
+    1. Be conversational and warm in your tone
+    2. If the answer is in the context, provide it clearly
+    3. If the answer isn't fully in the context, acknowledge what is known and what isn't
+    4. Always maintain an encouraging and helpful tone
+    5. If you reference information from the documents, be accurate and don't fabricate details
+    
+    Context:
+    {context}
+    
+    User Question: {input}
+    
+    Your helpful response:
+    """)
+    
+    # Create a document chain
+    document_chain = create_stuff_documents_chain(self.llm, prompt)
+    
+    # Create a retrieval chain
+    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    
+    # Generate response
+    response = retrieval_chain.invoke({"input": query})
+    
+    return {
+        "answer": response["answer"],
+        "sources": list(set(source_documents)),  # Remove duplicates
+        "fallback": False
+    }    
