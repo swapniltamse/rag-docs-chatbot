@@ -11,9 +11,9 @@ The system is retrieving and correctly responding about the content of the resea
 
 This likely indicates a partial success with a few possible issues:
 
-Chunking limitations: The document might be chunked in a way that the authors' section is in a separate chunk from the main content, and that specific chunk wasn't retrieved for this query.
-Text extraction issues: If the authors are listed in a header, footer, or special formatting in the PDF, the PyPDF2 library might not be extracting that text properly.
-Retrieval relevance: The system might not consider author information relevant enough to the query "who are the authors?" compared to content chunks.
+- Chunking limitations: The document might be chunked in a way that the authors' section is in a separate chunk from the main content, and that specific chunk wasn't retrieved for this query.
+- Text extraction issues: If the authors are listed in a header, footer, or special formatting in the PDF, the PyPDF2 library might not be extracting that text properly.
+- Retrieval relevance: The system might not consider author information relevant enough to the query "who are the authors?" compared to content chunks.
 ## Features
 
 - Document ingestion and processing (PDF, TXT, MD)
