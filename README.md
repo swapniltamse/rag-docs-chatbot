@@ -7,6 +7,9 @@ Initial interface:
 Some successful, some not so successful results:
 ![alt text](image-3.png)
 
+With imoroved chat interface and better chunking strategy. Successfully context switches.
+![alt text](image-4.png)
+
 The system is retrieving and correctly responding about the content of the research paper, but it's not picking up on the author information which you know is clearly stated in the document.
 
 This likely indicates a partial success with a few possible issues:
