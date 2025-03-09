@@ -4,7 +4,8 @@ A chatbot that uses Retrieval-Augmented Generation (RAG) to answer questions abo
 Initial interface:
 ![alt text](image.png)
 ![alt text](image-1.png)
-
+Some successful, some not so successful results:
+![alt text](image-3.png)
 ## Features
 
 - Document ingestion and processing (PDF, TXT, MD)
