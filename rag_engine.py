@@ -290,12 +290,12 @@ class RAGEngine:
         }
       
     def generate_response_with_fallback(self, query: str) -> dict:
-    """Generate a response with fallback for when no relevant documents are found"""
-    # Load the vector store
-    vectordb = Chroma(
-        persist_directory=self.db_dir,
-        embedding_function=self.embeddings
-    )
+        """Generate a response with fallback for when no relevant documents are found"""
+        # Load the vector store
+        vectordb = Chroma(
+            persist_directory=self.db_dir,
+            embedding_function=self.embeddings
+        )
     
     # Create a retriever
     retriever = vectordb.as_retriever(
