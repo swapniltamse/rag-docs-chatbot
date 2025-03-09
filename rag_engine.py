@@ -9,6 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.vectorstores import Chroma
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+import pypdf
 
 class RAGEngine:
     def __init__(self, docs_dir: str, db_dir: str):
@@ -71,7 +72,7 @@ class RAGEngine:
         documents = []
         try:
             with open(pdf_path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
+                pdf_reader = pypdf.PdfReader(file)
                 for i, page in enumerate(pdf_reader.pages):
                     text = page.extract_text()
                     if text.strip():
